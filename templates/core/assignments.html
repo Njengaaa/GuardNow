@@ -1,0 +1,12 @@
+{% extends 'core/base.html' %}
+{% block title %}Assignments | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><a class="back-link" href="{% url 'admin_dashboard' %}">← Admin dashboard</a><p class="eyebrow">DEPLOYMENT</p><h1>Assignments & attendance</h1><p class="muted">Review deployed guards and record daily attendance.</p></div>
+<section class="panel">
+    {% if assignments %}<div class="table-wrap"><table><thead><tr><th>Guard</th><th>Site</th><th>Shift</th><th>Assignment dates</th><th>Attendance</th></tr></thead><tbody>
+    {% for assignment in assignments %}
+    <tr><td><strong>{{ assignment.guard.full_name }}</strong><small>{{ assignment.guard.rank.name }}</small></td><td>{{ assignment.request.site.site_name }}</td><td>{{ assignment.shift.name }}<small>{{ assignment.shift.start_time }} – {{ assignment.shift.end_time }}</small></td><td>{{ assignment.start_date }} – {{ assignment.end_date }}</td><td><a class="text-link" href="{% url 'record_attendance' assignment.pk %}">Record attendance</a></td></tr>
+    {% endfor %}
+    </tbody></table></div>{% else %}<div class="empty-state"><h3>No assignments</h3><p>Approve a request and assign guards to see deployments here.</p></div>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'core/base.html' %}
+{% block title %}Assign guard | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><a class="back-link" href="{% url 'admin_dashboard' %}">← Back to admin dashboard</a><p class="eyebrow">DEPLOYMENT</p><h1>Assign a guard</h1><p class="muted">Request for {{ service_request.site.site_name }} · {{ assigned_count }} of {{ service_request.guards_needed }} assigned.</p></div>
+<section class="form-card narrow-card">
+    <div class="notice">Only available guards with the requested rank are listed. The system checks overlapping shifts and request dates before saving.</div>
+    <form method="post">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Save assignment</button></form>
+</section>
+{% if service_request.assignments.exists %}
+<section class="panel spaced-panel"><h2>Already assigned</h2><ul class="simple-list">{% for assignment in service_request.assignments.all %}<li>{{ assignment.guard.full_name }} <span>{{ assignment.shift.name }} · {{ assignment.start_date }} – {{ assignment.end_date }}</span></li>{% endfor %}</ul></section>
+{% endif %}
+{% endblock %}

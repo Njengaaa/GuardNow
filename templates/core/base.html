@@ -1,0 +1,47 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}GuardLink{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{% url 'home' %}"><span class="brand-mark">G</span> GuardLink</a>
+        <nav aria-label="Main navigation">
+            {% if user.is_authenticated %}
+                {% if user.role == 'admin' %}
+                    <a href="{% url 'admin_dashboard' %}">Admin dashboard</a>
+                    <a href="{% url 'assignment_list' %}">Assignments</a>
+                    <a href="{% url 'payments' %}">Payments</a>
+                    <a href="{% url 'invoices' %}">Invoices</a>
+                {% else %}
+                    <a href="{% url 'client_dashboard' %}">My requests</a>
+                    <a href="{% url 'profile' %}">Profile</a>
+                {% endif %}
+                <span class="nav-user">{{ user.full_name|default:user.email }}</span>
+                <form class="inline-form" method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="nav-logout" type="submit">Log out</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}">Log in</a>
+                <a class="nav-register" href="{% url 'register' %}">Create account</a>
+            {% endif %}
+        </nav>
+    </header>
+    <main class="page-shell">
+        {% if messages %}
+            <section class="messages" aria-live="polite">
+                {% for message in messages %}
+                    <p class="message {{ message.tags }}">{{ message }}</p>
+                {% endfor %}
+            </section>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">GuardLink · Security guard deployment management</footer>
+</body>
+</html>

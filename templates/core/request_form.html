@@ -1,0 +1,14 @@
+{% extends 'core/base.html' %}
+{% block title %}Request guards | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><a class="back-link" href="{% url 'client_dashboard' %}">← Back to requests</a><p class="eyebrow">CLIENT PORTAL</p><h1>Request security guards</h1><p class="muted">Choose the site, rank, shift, number of guards, and service dates. Submit a separate request for each shift you need.</p></div>
+<section class="form-card wide-card">
+    {% if not form.fields.rank.queryset.exists %}<div class="notice">Guard ranks have not been set up yet. Please contact the administrator before submitting a request.</div>{% endif %}
+    {% if not form.fields.shift.queryset.exists %}<div class="notice">Shift schedules have not been set up yet. Please contact the administrator before submitting a request.</div>{% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="button-row"><button class="button" type="submit">Submit request</button><a class="button button-secondary" href="{% url 'client_dashboard' %}">Cancel</a></div>
+    </form>
+</section>
+{% endblock %}

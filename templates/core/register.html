@@ -1,0 +1,17 @@
+{% extends 'core/base.html' %}
+{% block title %}Create account | GuardLink{% endblock %}
+{% block content %}
+<section class="auth-layout">
+    <div class="auth-aside"><p class="eyebrow">GET STARTED</p><h1>Make security requests easier to manage.</h1><p>Create a client account to submit and track guard requests for your sites.</p></div>
+    <div class="form-card">
+        <h2>Create a client account</h2>
+        <p class="muted">All fields marked required must be completed.</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button class="button button-full" type="submit">Create account</button>
+        </form>
+        <p class="form-note">Already registered? <a href="{% url 'login' %}">Log in</a>.</p>
+    </div>
+</section>
+{% endblock %}

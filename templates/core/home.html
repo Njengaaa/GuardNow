@@ -1,0 +1,28 @@
+{% extends 'core/base.html' %}
+{% block title %}GuardLink | Security made manageable{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="hero-copy">
+        <p class="eyebrow">SECURITY OPERATIONS, CONNECTED</p>
+        <h1>Reliable guard deployment starts here.</h1>
+        <p class="hero-lead">Request security staff, coordinate assignments, record attendance, and keep payment records together in one place.</p>
+        <div class="button-row">
+            <a class="button" href="{% url 'register' %}">Request guards</a>
+            <a class="button button-secondary" href="{% url 'login' %}">Sign in</a>
+        </div>
+    </div>
+    <aside class="hero-card">
+        <p class="eyebrow">THE GUARDLINK WORKFLOW</p>
+        <ol class="workflow">
+            <li><span>01</span><div><strong>Request</strong><small>Choose a rank, site, and dates.</small></div></li>
+            <li><span>02</span><div><strong>Deploy</strong><small>Review requests and schedule guards.</small></div></li>
+            <li><span>03</span><div><strong>Track</strong><small>Record attendance and calculate pay.</small></div></li>
+        </ol>
+    </aside>
+</section>
+<section class="feature-grid">
+    <article class="feature-card"><span class="feature-icon">01</span><h2>For clients</h2><p>Send a guard request and follow its status from your account.</p></article>
+    <article class="feature-card"><span class="feature-icon">02</span><h2>For administrators</h2><p>Manage guard assignments, shift schedules, and attendance.</p></article>
+    <article class="feature-card"><span class="feature-icon">03</span><h2>Clear records</h2><p>Calculate guard payments from attendance and recorded rewards.</p></article>
+</section>
+{% endblock %}

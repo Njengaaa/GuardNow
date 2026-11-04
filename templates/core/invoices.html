@@ -1,0 +1,48 @@
+{% extends 'core/base.html' %}
+{% block title %}Client invoices | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><p class="eyebrow">CLIENT BILLING</p><h1>Client invoices</h1><p class="muted">Invoices are based on scheduled guard-days, whether or not attendance is later marked absent.</p></div>
+<section class="panel">
+    <div class="panel-heading"><div><h2>Requests ready for invoicing</h2><p class="muted">All requested guards must be assigned before an invoice can be created.</p></div></div>
+    {% if billable_requests %}
+        <div class="table-wrap"><table><thead><tr><th>Client and site</th><th>Rank & shift</th><th>Coverage</th><th>Assigned</th><th>Action</th></tr></thead><tbody>
+        {% for service_request in billable_requests %}
+            <tr>
+                <td><strong>{{ service_request.client.full_name|default:service_request.client.email }}</strong><small>{{ service_request.site.site_name }}</small></td>
+                <td>{{ service_request.rank.name }}<small>{{ service_request.shift|default:"Shift not specified" }}</small></td>
+                <td>{{ service_request.start_date }} – {{ service_request.end_date }}</td>
+                <td>{{ service_request.assignments.count }} / {{ service_request.guards_needed }}</td>
+                <td>
+                    {% if service_request.assignments.count == service_request.guards_needed %}
+                        <form method="post" action="{% url 'create_invoice' service_request.pk %}">{% csrf_token %}<button class="button button-small" type="submit">Create draft invoice</button></form>
+                    {% else %}<span class="muted">Complete assignments first</span>{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody></table></div>
+    {% else %}<div class="empty-state"><h3>No requests ready to invoice</h3><p>Approved or completed, fully assigned requests will appear here.</p></div>{% endif %}
+</section>
+<section class="panel spaced-panel">
+    <div class="panel-heading"><div><h2>Invoices</h2><p class="muted">Review draft invoices, issue them to clients, and record payment.</p></div></div>
+    {% if invoices %}
+        <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Client & site</th><th>Coverage</th><th>Rate per guard-day</th><th>Guard-days</th><th>Total</th><th>Status / action</th></tr></thead><tbody>
+        {% for invoice in invoices %}
+            <tr>
+                <td><strong>#{{ invoice.pk }}</strong></td>
+                <td>{{ invoice.request.client.full_name|default:invoice.request.client.email }}<small>{{ invoice.request.site.site_name }}</small></td>
+                <td>{{ invoice.request.shift|default:"Shift not specified" }}<small>{{ invoice.request.start_date }} – {{ invoice.request.end_date }}</small></td>
+                <td>{{ invoice.client_daily_rate }}</td><td>{{ invoice.guard_days }}</td><td><strong>{{ invoice.total_amount }}</strong></td>
+                <td>
+                    <span class="status status-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
+                    {% if invoice.status == 'draft' %}
+                        <form method="post" action="{% url 'update_invoice_status' invoice.pk %}">{% csrf_token %}<button class="text-link" type="submit" name="status" value="issued">Issue invoice</button></form>
+                    {% elif invoice.status == 'issued' %}
+                        <form method="post" action="{% url 'update_invoice_status' invoice.pk %}">{% csrf_token %}<button class="text-link" type="submit" name="status" value="paid">Mark paid</button></form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody></table></div>
+    {% else %}<div class="empty-state"><h3>No invoices created</h3><p>Generate an invoice after every requested guard has been assigned.</p></div>{% endif %}
+</section>
+{% endblock %}

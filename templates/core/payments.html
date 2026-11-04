@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+{% block title %}Payments & rewards | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading heading-row"><div><p class="eyebrow">GUARD PAYROLL</p><h1>Payments & rewards</h1><p class="muted">Calculate guard pay from recorded present shifts and rewards for a date range. Client charges are tracked separately under Invoices.</p></div><a class="button button-secondary" href="{% url 'create_reward' %}">Add reward</a></div>
+<section class="form-card inline-card">
+    <h2>Calculate a payment</h2>
+    <p class="muted">Base pay = present shift-days × guard daily rate. Rewards dated in the period are added to the total.</p>
+    <form class="form-grid" method="post">{% csrf_token %}{{ form.as_p }}<div class="form-submit"><button class="button" type="submit">Calculate / refresh</button></div></form>
+</section>
+<section class="panel spaced-panel">
+    <div class="panel-heading"><div><h2>Payment records</h2><p class="muted">Refresh a period after recording attendance or rewards.</p></div></div>
+    {% if payments %}<div class="table-wrap"><table><thead><tr><th>Guard</th><th>Period</th><th>Shifts</th><th>Base pay</th><th>Rewards</th><th>Total</th><th>Status</th></tr></thead><tbody>
+    {% for payment in payments %}<tr>
+        <td><strong>{{ payment.guard.full_name }}</strong><small>{{ payment.guard.rank.name }}</small></td>
+        <td>{{ payment.period_start }} – {{ payment.period_end }}</td><td>{{ payment.shifts_worked }}</td>
+        <td>{{ payment.base_amount }}</td><td>{{ payment.bonus_amount }}</td><td><strong>{{ payment.total_amount }}</strong></td>
+        <td><form class="status-form" method="post" action="{% url 'update_payment_status' payment.pk %}">{% csrf_token %}<select name="status" aria-label="Payment status"><option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>Pending</option><option value="paid" {% if payment.status == 'paid' %}selected{% endif %}>Paid</option></select><button class="text-link" type="submit">Save</button></form></td>
+    </tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty-state"><h3>No payment records</h3><p>Use the form above to calculate a payment for a guard and period.</p></div>{% endif %}
+</section>
+<section class="panel spaced-panel">
+    <h2>Rewards</h2>
+    {% if rewards %}<div class="table-wrap"><table><thead><tr><th>Guard</th><th>Reason</th><th>Date</th><th>Amount</th><th>Payment period</th></tr></thead><tbody>{% for reward in rewards %}<tr><td>{{ reward.guard.full_name }}</td><td>{{ reward.reason }}</td><td>{{ reward.date_awarded }}</td><td>{{ reward.amount }}</td><td>{% if reward.payment %}{{ reward.payment.period_start }} – {{ reward.payment.period_end }}{% else %}Not included in a payment yet{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">No rewards recorded yet.</p>{% endif %}
+</section>
+{% endblock %}

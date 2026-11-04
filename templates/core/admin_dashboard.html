@@ -1,0 +1,45 @@
+{% extends 'core/base.html' %}
+{% block title %}Admin dashboard | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><p class="eyebrow">OPERATIONS</p><h1>Admin dashboard</h1><p class="muted">Review requests and manage the guard deployment workflow.</p></div>
+<section class="stats-grid">
+    <article class="stat-card"><span>Pending requests</span><strong>{{ pending_requests }}</strong><small>Need review</small></article>
+    <article class="stat-card"><span>Available guards</span><strong>{{ available_guards }}</strong><small>Ready for assignment</small></article>
+    <article class="stat-card"><span>Guard payroll records</span><strong>{{ payment_count }}</strong><small>Calculated periods</small></article>
+    <article class="stat-card"><span>Client invoices</span><strong>{{ invoice_count }}</strong><small>Draft, issued, or paid</small></article>
+</section>
+<section class="panel">
+    <div class="panel-heading"><div><h2>Client requests</h2><p class="muted">Approve a request before assigning available guards.</p></div><a class="text-link" href="/admin/">Manage ranks, guards and shifts ↗</a></div>
+    {% if requests %}
+        <div class="request-list">
+        {% for service_request in requests %}
+            <article class="request-card">
+                <div class="request-main">
+                    <div class="request-title"><h3>{{ service_request.site.site_name }}</h3><span class="status status-{{ service_request.status }}">{{ service_request.get_status_display }}</span></div>
+                    <p>{{ service_request.client.full_name|default:service_request.client.email }} · {{ service_request.site.address }}, {{ service_request.site.county }}</p>
+                    <div class="request-facts"><span>{{ service_request.rank.name }}</span><span>{{ service_request.shift|default:"Shift not specified" }}</span><span>{{ service_request.guards_needed }} guards</span><span>{{ service_request.start_date }} – {{ service_request.end_date }}</span></div>
+                    <small>{{ service_request.assignments.count }} assigned</small>
+                </div>
+                <div class="request-actions">
+                    {% if service_request.status == 'pending' %}
+                        <form method="post" action="{% url 'update_request_status' service_request.pk %}">{% csrf_token %}<button class="button button-small" name="status" value="approved">Approve</button></form>
+                        <form method="post" action="{% url 'update_request_status' service_request.pk %}">{% csrf_token %}<button class="button button-small button-danger" name="status" value="rejected">Reject</button></form>
+                    {% elif service_request.status == 'approved' %}
+                        <a class="button button-small" href="{% url 'assign_guard' service_request.pk %}">Assign guard</a>
+                        {% if service_request.assignments.exists %}<form method="post" action="{% url 'update_request_status' service_request.pk %}">{% csrf_token %}<button class="button button-small button-secondary" name="status" value="completed">Complete</button></form>{% endif %}
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+        </div>
+    {% else %}<div class="empty-state"><h3>No requests yet</h3><p>Client requests will appear here when submitted.</p></div>{% endif %}
+</section>
+<section class="admin-shortcuts">
+    <a class="shortcut-card" href="/admin/core/guard/"><span>01</span><div><strong>Manage guards</strong><small>Add or update guard records</small></div>↗</a>
+    <a class="shortcut-card" href="/admin/core/rank/"><span>02</span><div><strong>Manage ranks</strong><small>Set daily pay and client rates</small></div>↗</a>
+    <a class="shortcut-card" href="/admin/core/shift/"><span>03</span><div><strong>Manage shifts</strong><small>Configure shift times</small></div>↗</a>
+    <a class="shortcut-card" href="{% url 'assignment_list' %}"><span>04</span><div><strong>Assignments & attendance</strong><small>View deployments and log attendance</small></div>↗</a>
+    <a class="shortcut-card" href="{% url 'payments' %}"><span>05</span><div><strong>Payments & rewards</strong><small>Calculate pay and add rewards</small></div>↗</a>
+    <a class="shortcut-card" href="{% url 'invoices' %}"><span>06</span><div><strong>Client invoices</strong><small>Bill scheduled guard coverage</small></div>↗</a>
+</section>
+{% endblock %}

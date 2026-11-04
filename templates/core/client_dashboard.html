@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+{% block title %}My requests | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading heading-row">
+    <div><p class="eyebrow">CLIENT PORTAL</p><h1>Hello, {{ user.full_name|default:user.email }}</h1><p class="muted">Review your requests or submit a new one.</p></div>
+    <a class="button" href="{% url 'create_request' %}">New guard request</a>
+</div>
+<section class="panel">
+    <div class="panel-heading"><div><h2>Your guard requests</h2><p class="muted">Status is updated by the GuardLink team.</p></div><a class="text-link" href="{% url 'profile' %}">Edit profile</a></div>
+    {% if requests %}
+        <div class="table-wrap"><table><thead><tr><th>Site</th><th>Guard rank</th><th>Shift</th><th>Guards</th><th>Dates</th><th>Status</th></tr></thead><tbody>
+        {% for service_request in requests %}
+            <tr><td><strong>{{ service_request.site.site_name }}</strong><small>{{ service_request.site.county }}</small></td><td>{{ service_request.rank.name }}</td><td>{{ service_request.shift|default:"Not specified" }}</td><td>{{ service_request.guards_needed }}</td><td>{{ service_request.start_date }} – {{ service_request.end_date }}</td><td><span class="status status-{{ service_request.status }}">{{ service_request.get_status_display }}</span></td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    {% else %}
+        <div class="empty-state"><span class="empty-icon">+</span><h3>No requests yet</h3><p>Your submitted requests and their statuses will appear here.</p><a class="button button-secondary" href="{% url 'create_request' %}">Submit your first request</a></div>
+    {% endif %}
+</section>
+<section class="panel spaced-panel">
+    <div class="panel-heading"><div><h2>Your invoices</h2><p class="muted">Invoices appear here after the company issues them.</p></div></div>
+    {% if invoices %}
+        <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Site</th><th>Shift</th><th>Coverage</th><th>Guard-days</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+        {% for invoice in invoices %}
+            <tr><td><strong>#{{ invoice.pk }}</strong></td><td>{{ invoice.request.site.site_name }}</td><td>{{ invoice.request.shift|default:"Not specified" }}</td><td>{{ invoice.request.start_date }} – {{ invoice.request.end_date }}</td><td>{{ invoice.guard_days }}</td><td><strong>{{ invoice.total_amount }}</strong></td><td><span class="status status-{{ invoice.status }}">{{ invoice.get_status_display }}</span></td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    {% else %}<div class="empty-state"><h3>No invoices yet</h3><p>Issued client invoices will be displayed here.</p></div>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% extends 'core/base.html' %}
+{% block title %}Record attendance | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><a class="back-link" href="{% url 'assignment_list' %}">← Back to assignments</a><p class="eyebrow">ATTENDANCE</p><h1>Record attendance</h1><p class="muted">{{ assignment.guard.full_name }} · {{ assignment.shift.name }}</p></div>
+<section class="form-card narrow-card"><div class="notice">Choose a date within {{ assignment.start_date }} – {{ assignment.end_date }}. Saving an existing date updates its attendance.</div><form method="post">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Save attendance</button></form></section>
+{% endblock %}

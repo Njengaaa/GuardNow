@@ -1,0 +1,11 @@
+{% extends 'core/base.html' %}
+{% block title %}My profile | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><a class="back-link" href="{% url 'client_dashboard' %}">← Back to requests</a><p class="eyebrow">CLIENT PORTAL</p><h1>Your profile</h1><p class="muted">Update the name and phone number associated with your account.</p></div>
+<section class="form-card narrow-card"><form method="post">{% csrf_token %}
+    <label for="full_name">Full name</label><input id="full_name" name="full_name" maxlength="100" required value="{{ user.full_name }}">
+    <label for="email">Email address</label><input id="email" type="email" value="{{ user.email }}" disabled>
+    <label for="phone">Phone number</label><input id="phone" name="phone" maxlength="20" value="{{ user.phone }}">
+    <button class="button" type="submit">Save profile</button>
+</form></section>
+{% endblock %}
