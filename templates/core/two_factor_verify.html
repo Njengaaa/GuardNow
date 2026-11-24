@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+{% block title %}Two-factor verification | GuardLink{% endblock %}
+{% block content %}
+<section class="auth-layout">
+    <div class="auth-aside"><p class="eyebrow">SECURITY CHECK</p><h1>Verify your sign in.</h1><p>Enter the 6-digit code sent to your account email.</p></div>
+    <div class="form-card">
+        <h2>Verification code</h2>
+        <p class="muted">The code expires 10 minutes after login.</p>
+        <form method="post">{% csrf_token %}
+            <p><label for="code">6-digit code</label><input id="code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></p>
+            <button class="button button-full" type="submit">Verify and sign in</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

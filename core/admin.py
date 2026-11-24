@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.core.exceptions import ValidationError
 from django import forms
 
-from .models import Assignment, Guard, GuardRequest, Invoice, Payment, Rank, Reward, Shift, ShiftLog, Site, User
+from .models import AuditLog, Assignment, Guard, GuardRequest, Invoice, Payment, Rank, Reward, Shift, ShiftLog, Site, User
 
 
 class GuardLinkAdminCreationForm(forms.ModelForm):
@@ -87,3 +87,11 @@ class PaymentAdmin(admin.ModelAdmin):
 
 admin.site.register([Rank, Site, Shift, ShiftLog, Reward])
 admin.site.register(Invoice)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'user', 'action', 'ip_address']
+    list_filter = ['action', 'created_at']
+    search_fields = ['user__email', 'action', 'details']
+    readonly_fields = ['user', 'action', 'details', 'ip_address', 'created_at']

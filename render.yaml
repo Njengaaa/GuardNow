@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: guardlink
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn guardlink.wsgi:application"
+    envVars:
+      - key: DJANGO_DEBUG
+        value: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        fromService:
+          type: web
+          name: guardlink
+          property: host
+      - key: DATABASE_URL
+        fromDatabase:
+          name: guardlink-db
+          property: connectionString
+databases:
+  - name: guardlink-db
+    databaseName: guardlink

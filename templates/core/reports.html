@@ -1,0 +1,17 @@
+{% extends 'core/base.html' %}
+{% block title %}Reports | GuardLink{% endblock %}
+{% block content %}
+<div class="page-heading"><p class="eyebrow">REPORTS</p><h1>GuardLink Management Report</h1><p>GuardLink Security Services · Generated {% now "Y-m-d" %}</p></div>
+<section class="panel inline-card">
+    <form method="get" class="form-grid">
+        <p><label for="start">Created from</label><input id="start" type="date" name="start" value="{{ start_date }}"></p>
+        <p><label for="end">Created until</label><input id="end" type="date" name="end" value="{{ end_date }}"></p>
+        <p><label for="status">Invoice status</label><select id="status" name="status"><option value="">All statuses</option><option value="draft" {% if status == 'draft' %}selected{% endif %}>Draft</option><option value="issued" {% if status == 'issued' %}selected{% endif %}>Issued</option><option value="paid" {% if status == 'paid' %}selected{% endif %}>Paid</option></select></p>
+        <p><button class="button" type="submit">Filter report</button></p>
+    </form>
+    <div class="button-row" style="margin-top:12px"><button class="button button-secondary" type="button" onclick="window.print()">Print / Save PDF</button><a class="button" href="{% url 'reports_csv' %}">Export CSV</a></div>
+</section>
+<section class="panel spaced-panel"><div class="panel-heading"><h2>Invoices</h2></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Client</th><th>Site</th><th>Status</th><th>Guard-days</th><th>Total</th></tr></thead><tbody>{% for invoice in invoices %}<tr><td>#{{ invoice.pk }}</td><td>{{ invoice.request.client.full_name }}</td><td>{{ invoice.request.site.site_name }}</td><td>{{ invoice.get_status_display }}</td><td>{{ invoice.guard_days }}</td><td>{{ invoice.total_amount }}</td></tr>{% empty %}<tr><td colspan="6">No invoice records match the filters.</td></tr>{% endfor %}</tbody></table></div></section>
+<section class="panel spaced-panel"><div class="panel-heading"><h2>Payments</h2></div><div class="table-wrap"><table><thead><tr><th>Guard</th><th>Period</th><th>Present shifts</th><th>Base</th><th>Bonus</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for payment in payments %}<tr><td>{{ payment.guard.full_name }}</td><td>{{ payment.period_start }} – {{ payment.period_end }}</td><td>{{ payment.shifts_worked }}</td><td>{{ payment.base_amount }}</td><td>{{ payment.bonus_amount }}</td><td>{{ payment.total_amount }}</td><td>{{ payment.get_status_display }}</td></tr>{% empty %}<tr><td colspan="7">No payment records match the filters.</td></tr>{% endfor %}</tbody></table></div></section>
+<style>@media print{.site-header,.site-footer,.button-row,nav{display:none!important}.page-shell{width:100%;padding:0}.panel{box-shadow:none}}</style>
+{% endblock %}

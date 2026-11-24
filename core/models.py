@@ -26,7 +26,8 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_staff') is not True:
             raise ValueError('A superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
-            raise ValueError('A superuser must have is_superuser=True.')
+            raise Valu
+            eError('A superuser must have is_superuser=True.')
         return self.create_user(email, password, **extra_fields)
 
 
@@ -353,3 +354,23 @@ class Reward(models.Model):
 
     def __str__(self):
         return f'{self.guard} — {self.reason} ({self.amount})'
+
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs',
+    )
+    action = models.CharField(max_length=150)
+    details = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.action} — {self.created_at}'

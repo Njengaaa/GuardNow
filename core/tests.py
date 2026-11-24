@@ -65,6 +65,23 @@ class GuardLinkTestData(TestCase):
 
 
 class AuthenticationAndClientFlowTests(GuardLinkTestData):
+    def test_login_requires_two_factor_verification(self):
+        response = self.client.post(reverse('login'), {
+            'username': 'client@example.com',
+            'password': 'StrongPass!47',
+        })
+        self.assertRedirects(response, reverse('verify_two_factor'))
+        code = self.client.session['pending_2fa_code']
+        response = self.client.post(reverse('verify_two_factor'), {'code': code})
+        self.assertRedirects(response, reverse('client_dashboard'))
+        self.assertIn('_auth_user_id', self.client.session)
+
+    def test_password_reset_pages_are_available(self):
+        self.assertEqual(
+            self.client.get(reverse('password_reset')).status_code,
+            200,
+        )
+
     def test_registration_creates_hashed_password_and_signs_client_in(self):
         response = self.client.post(reverse('register'), {
             'full_name': 'New Client',
@@ -85,6 +102,9 @@ class AuthenticationAndClientFlowTests(GuardLinkTestData):
             'username': 'client@example.com',
             'password': 'StrongPass!47',
         })
+        self.assertRedirects(response, reverse('verify_two_factor'))
+        code = self.client.session['pending_2fa_code']
+        response = self.client.post(reverse('verify_two_factor'), {'code': code})
         self.assertRedirects(response, reverse('client_dashboard'))
         self.assertEqual(int(self.client.session['_auth_user_id']), self.client_user.pk)
 
@@ -377,6 +397,9 @@ class DeploymentAndPayrollTests(GuardLinkTestData):
             'username': 'admin@example.com',
             'password': 'AdminStrong!47',
         })
+        self.assertRedirects(response, reverse('verify_two_factor'))
+        code = self.client.session['pending_2fa_code']
+        response = self.client.post(reverse('verify_two_factor'), {'code': code})
         self.assertRedirects(response, reverse('admin_dashboard'))
         response = self.client.post('/admin/core/user/add/', {
             'email': 'new-admin@example.com',

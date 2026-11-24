@@ -22,6 +22,7 @@
                     <a href="{% url 'profile' %}">Profile</a>
                 {% endif %}
                 <span class="nav-user">{{ user.full_name|default:user.email }}</span>
+                {% if user.role == 'admin' %}<a href="{% url 'user_manual' %}">User manual</a>{% endif %}
                 <form class="inline-form" method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button class="nav-logout" type="submit">Log out</button>
