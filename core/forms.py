@@ -122,7 +122,8 @@ class AssignmentForm(forms.ModelForm):
         self.instance.request = service_request
         self.fields['guard'].queryset = Guard.objects.filter(
             rank=service_request.rank,
-        ).exclude(status=Guard.Status.ON_LEAVE)
+            status=Guard.Status.AVAILABLE,
+        )
         self.fields['start_date'].initial = service_request.start_date
         self.fields['end_date'].initial = service_request.end_date
         if service_request.shift_id:
@@ -152,12 +153,38 @@ class AttendanceForm(forms.ModelForm):
 class RewardForm(forms.ModelForm):
     class Meta:
         model = Reward
-        fields = ['guard', 'reason', 'amount', 'date_awarded']
+        fields = ['guard', 'reason', 'date_awarded']
         widgets = {'date_awarded': forms.DateInput(attrs={'type': 'date'})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['guard'].queryset = Guard.objects.all()
+        self.fields['reason'].help_text = (
+            'The reward amount is calculated from the guard’s base pay for the payment period.'
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('reason') == Reward.Reason.PERFECT_ATTENDANCE:
+            guard = cleaned_data.get('guard')
+            date_awarded = cleaned_data.get('date_awarded')
+            if guard and date_awarded:
+                payment = Payment.objects.filter(
+                    guard=guard,
+                    period_start__lte=date_awarded,
+                    period_end__gte=date_awarded,
+                ).order_by('-period_end').first()
+                if payment is None:
+                    self.add_error(
+                        'date_awarded',
+                        'Calculate a payment for this period before awarding Perfect Attendance.',
+                    )
+                elif not payment.has_perfect_attendance():
+                    self.add_error(
+                        'date_awarded',
+                        'Perfect Attendance requires every scheduled shift-day in the payment period to be Present.',
+                    )
+        return cleaned_data
 
 
 class PaymentPeriodForm(forms.Form):

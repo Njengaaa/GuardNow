@@ -5,7 +5,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Q
 
 
 class UserManager(BaseUserManager):
@@ -271,6 +271,25 @@ class Payment(models.Model):
                     'period_start': 'This period overlaps another payment period for the same guard.',
                 })
 
+    def has_perfect_attendance(self):
+        assignments = list(Assignment.objects.filter(
+            guard=self.guard,
+            start_date__lte=self.period_end,
+            end_date__gte=self.period_start,
+        ))
+        scheduled_shift_days = sum(
+            (min(assignment.end_date, self.period_end) - max(assignment.start_date, self.period_start)).days + 1
+            for assignment in assignments
+        )
+        if not scheduled_shift_days:
+            return False
+        present_shift_days = ShiftLog.objects.filter(
+            assignment__in=assignments,
+            work_date__range=(self.period_start, self.period_end),
+            attendance=ShiftLog.Attendance.PRESENT,
+        ).count()
+        return present_shift_days == scheduled_shift_days
+
     def recalculate(self):
         present_logs = ShiftLog.objects.filter(
             assignment__guard=self.guard,
@@ -279,14 +298,40 @@ class Payment(models.Model):
         )
         self.shifts_worked = present_logs.count()
         self.base_amount = self.guard.rank.guard_daily_rate * self.shifts_worked
-        eligible_rewards = Reward.objects.filter(
+        period_rewards = list(Reward.objects.filter(
             guard=self.guard,
             date_awarded__range=(self.period_start, self.period_end),
-        ).filter(Q(payment=self) | Q(payment__isnull=True))
-        self.bonus_amount = eligible_rewards.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        ).filter(Q(payment=self) | Q(payment__isnull=True)))
+        qualified_rewards = [
+            reward for reward in period_rewards
+            if reward.reason != Reward.Reason.PERFECT_ATTENDANCE or self.has_perfect_attendance()
+        ]
+        percentage_rewards = [reward for reward in qualified_rewards if reward.percentage is not None]
+        legacy_rewards = [reward for reward in period_rewards if reward.percentage is None]
+        highest_percentage_reward = max(
+            percentage_rewards,
+            key=lambda reward: reward.percentage,
+            default=None,
+        )
+        percentage_bonus = Decimal('0.00')
+        if highest_percentage_reward:
+            percentage_bonus = (
+                self.base_amount * highest_percentage_reward.percentage / Decimal('100')
+            ).quantize(Decimal('0.01'))
+        legacy_bonus = sum((reward.amount for reward in legacy_rewards), Decimal('0.00'))
+        self.bonus_amount = percentage_bonus + legacy_bonus
         self.total_amount = self.base_amount + self.bonus_amount
         self.save(update_fields=['shifts_worked', 'base_amount', 'bonus_amount', 'total_amount'])
-        eligible_rewards.filter(payment__isnull=True).update(payment=self)
+        for reward in period_rewards:
+            reward.payment = self
+            if reward.percentage is not None:
+                reward.amount = (
+                    percentage_bonus
+                    if reward == highest_percentage_reward
+                    else Decimal('0.00')
+                )
+        if period_rewards:
+            Reward.objects.bulk_update(period_rewards, ['payment', 'amount'])
 
     def __str__(self):
         return f'{self.guard} — {self.period_start} to {self.period_end}'
@@ -334,6 +379,20 @@ class Invoice(models.Model):
 
 
 class Reward(models.Model):
+    class Reason(models.TextChoices):
+        EXCELLENT_SERVICE = 'Excellent Service', 'Excellent Service (25%)'
+        GOOD_SERVICE = 'Good Service', 'Good Service (5%)'
+        PERFECT_ATTENDANCE = 'Perfect Attendance', 'Perfect Attendance (10%)'
+        CLIENT_PERFECT_RATING = 'Client Perfect Rating', 'Client Perfect Rating (5%)'
+
+    PERCENTAGES = {
+        Reason.EXCELLENT_SERVICE: Decimal('25.00'),
+        Reason.GOOD_SERVICE: Decimal('5.00'),
+        Reason.PERFECT_ATTENDANCE: Decimal('10.00'),
+        Reason.CLIENT_PERFECT_RATING: Decimal('5.00'),
+        'Excellent service': Decimal('25.00'),
+    }
+
     guard = models.ForeignKey(Guard, on_delete=models.PROTECT, related_name='rewards')
     payment = models.ForeignKey(
         Payment,
@@ -342,8 +401,13 @@ class Reward(models.Model):
         blank=True,
         related_name='rewards',
     )
-    reason = models.CharField(max_length=150)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    reason = models.CharField(max_length=150, choices=Reason.choices)
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        editable=False,
+    )
     date_awarded = models.DateField()
 
     class Meta:
@@ -351,6 +415,10 @@ class Reward(models.Model):
         constraints = [
             models.CheckConstraint(condition=Q(amount__gte=0), name='reward_amount_nonnegative'),
         ]
+
+    @property
+    def percentage(self):
+        return self.PERCENTAGES.get(self.reason)
 
     def __str__(self):
         return f'{self.guard} — {self.reason} ({self.amount})'

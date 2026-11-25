@@ -171,6 +171,35 @@ class DeploymentAndPayrollTests(GuardLinkTestData):
         super().setUp()
         self.service_request = self.make_request()
 
+    def test_assignment_form_lists_only_available_guards(self):
+        self.service_request.status = GuardRequest.Status.APPROVED
+        self.service_request.guards_needed = 2
+        self.service_request.save(update_fields=['status', 'guards_needed'])
+        Assignment.objects.create(
+            request=self.service_request,
+            guard=self.guard,
+            shift=self.day_shift,
+            start_date=date(2026, 11, 10),
+            end_date=date(2026, 11, 12),
+        )
+        self.guard.status = Guard.Status.DEPLOYED
+        self.guard.save(update_fields=['status'])
+        available_guard = Guard.objects.create(
+            full_name='Available Guard',
+            national_id='ID-101',
+            phone='0700000001',
+            rank=self.rank,
+            status=Guard.Status.AVAILABLE,
+            date_hired=date(2025, 1, 1),
+        )
+
+        self.client.force_login(self.admin_user)
+        response = self.client.get(reverse('assign_guard', args=[self.service_request.pk]))
+        guard_choices = response.context['form'].fields['guard'].queryset
+
+        self.assertIn(available_guard, guard_choices)
+        self.assertNotIn(self.guard, guard_choices)
+
     def test_admin_can_approve_and_assign_a_guard(self):
         self.client.force_login(self.admin_user)
         status_response = self.client.post(
@@ -259,9 +288,13 @@ class DeploymentAndPayrollTests(GuardLinkTestData):
         )
         reward = Reward.objects.create(
             guard=self.guard,
-            reason='Excellent service',
-            amount=Decimal('250.00'),
+            reason=Reward.Reason.EXCELLENT_SERVICE,
             date_awarded=date(2026, 11, 11),
+        )
+        lower_reward = Reward.objects.create(
+            guard=self.guard,
+            reason=Reward.Reason.CLIENT_PERFECT_RATING,
+            date_awarded=date(2026, 11, 12),
         )
         payment = Payment.objects.create(
             guard=self.guard,
@@ -272,12 +305,86 @@ class DeploymentAndPayrollTests(GuardLinkTestData):
         payment.recalculate()
         payment.refresh_from_db()
         reward.refresh_from_db()
+        lower_reward.refresh_from_db()
 
         self.assertEqual(payment.shifts_worked, 1)
         self.assertEqual(payment.base_amount, Decimal('1200.00'))
-        self.assertEqual(payment.bonus_amount, Decimal('250.00'))
-        self.assertEqual(payment.total_amount, Decimal('1450.00'))
+        self.assertEqual(payment.bonus_amount, Decimal('300.00'))
+        self.assertEqual(payment.total_amount, Decimal('1500.00'))
         self.assertEqual(reward.payment, payment)
+        self.assertEqual(reward.amount, Decimal('300.00'))
+        self.assertEqual(lower_reward.payment, payment)
+        self.assertEqual(lower_reward.amount, Decimal('0.00'))
+
+    def test_perfect_attendance_reward_is_percentage_and_requires_every_shift_present(self):
+        self.service_request.status = GuardRequest.Status.APPROVED
+        self.service_request.save(update_fields=['status'])
+        assignment = Assignment.objects.create(
+            request=self.service_request,
+            guard=self.guard,
+            shift=self.day_shift,
+            start_date=date(2026, 11, 10),
+            end_date=date(2026, 11, 12),
+        )
+        attendance = []
+        for work_date, status in (
+            (date(2026, 11, 10), ShiftLog.Attendance.PRESENT),
+            (date(2026, 11, 11), ShiftLog.Attendance.PRESENT),
+            (date(2026, 11, 12), ShiftLog.Attendance.ABSENT),
+        ):
+            attendance.append(ShiftLog.objects.create(
+                assignment=assignment,
+                work_date=work_date,
+                attendance=status,
+            ))
+        payment = Payment.objects.create(
+            guard=self.guard,
+            period_start=date(2026, 11, 10),
+            period_end=date(2026, 11, 12),
+        )
+        payment.recalculate()
+        self.client.force_login(self.admin_user)
+        reward_response = self.client.post(reverse('create_reward'), {
+            'guard': self.guard.pk,
+            'reason': Reward.Reason.PERFECT_ATTENDANCE,
+            'date_awarded': '2026-11-12',
+        })
+        self.assertEqual(reward_response.status_code, 200)
+        self.assertContains(reward_response, 'requires every scheduled shift-day')
+        self.assertFalse(Reward.objects.exists())
+
+        attendance[-1].attendance = ShiftLog.Attendance.PRESENT
+        attendance[-1].save(update_fields=['attendance'])
+        reward_response = self.client.post(reverse('create_reward'), {
+            'guard': self.guard.pk,
+            'reason': Reward.Reason.PERFECT_ATTENDANCE,
+            'date_awarded': '2026-11-12',
+        })
+        self.assertRedirects(reward_response, reverse('payments'))
+        reward = Reward.objects.get(guard=self.guard)
+        payment.refresh_from_db()
+        reward.refresh_from_db()
+        self.assertEqual(payment.base_amount, Decimal('3600.00'))
+        self.assertEqual(payment.bonus_amount, Decimal('360.00'))
+        self.assertEqual(reward.amount, Decimal('360.00'))
+
+        attendance[-1].attendance = ShiftLog.Attendance.LATE
+        attendance[-1].save(update_fields=['attendance'])
+        payment.recalculate()
+        payment.refresh_from_db()
+        reward.refresh_from_db()
+        self.assertEqual(payment.bonus_amount, Decimal('0.00'))
+        self.assertEqual(reward.amount, Decimal('0.00'))
+
+    def test_reward_form_offers_reasons_and_hides_manual_amount(self):
+        self.client.force_login(self.admin_user)
+        response = self.client.get(reverse('create_reward'))
+
+        self.assertContains(response, 'Excellent Service (25%)')
+        self.assertContains(response, 'Good Service (5%)')
+        self.assertContains(response, 'Perfect Attendance (10%)')
+        self.assertContains(response, 'Client Perfect Rating (5%)')
+        self.assertNotContains(response, 'name="amount"')
 
     def test_overlapping_payment_period_is_rejected(self):
         Payment.objects.create(

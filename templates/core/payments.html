@@ -4,7 +4,7 @@
 <div class="page-heading heading-row"><div><p class="eyebrow">GUARD PAYROLL</p><h1>Payments & rewards</h1><p class="muted">Calculate guard pay from recorded present shifts and rewards for a date range. Client charges are tracked separately under Invoices.</p></div><a class="button button-secondary" href="{% url 'create_reward' %}">Add reward</a></div>
 <section class="form-card inline-card">
     <h2>Calculate a payment</h2>
-    <p class="muted">Base pay = present shift-days × guard daily rate. Rewards dated in the period are added to the total.</p>
+    <p class="muted">Base pay = present shift-days × guard daily rate. The highest qualifying reward percentage for the period is added to base pay. Perfect Attendance requires every scheduled shift-day to be marked Present.</p>
     <form class="form-grid" method="post">{% csrf_token %}{{ form.as_p }}<div class="form-submit"><button class="button" type="submit">Calculate / refresh</button></div></form>
 </section>
 <section class="panel spaced-panel">
@@ -20,6 +20,6 @@
 </section>
 <section class="panel spaced-panel">
     <h2>Rewards</h2>
-    {% if rewards %}<div class="table-wrap"><table><thead><tr><th>Guard</th><th>Reason</th><th>Date</th><th>Amount</th><th>Payment period</th></tr></thead><tbody>{% for reward in rewards %}<tr><td>{{ reward.guard.full_name }}</td><td>{{ reward.reason }}</td><td>{{ reward.date_awarded }}</td><td>{{ reward.amount }}</td><td>{% if reward.payment %}{{ reward.payment.period_start }} – {{ reward.payment.period_end }}{% else %}Not included in a payment yet{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">No rewards recorded yet.</p>{% endif %}
+    {% if rewards %}<div class="table-wrap"><table><thead><tr><th>Guard</th><th>Reason</th><th>Rate</th><th>Date</th><th>Calculated amount</th><th>Payment period</th></tr></thead><tbody>{% for reward in rewards %}<tr><td>{{ reward.guard.full_name }}</td><td>{{ reward.get_reason_display|default:reward.reason }}</td><td>{% if reward.percentage %}{{ reward.percentage }}%{% else %}—{% endif %}</td><td>{{ reward.date_awarded }}</td><td>{{ reward.amount }}</td><td>{% if reward.payment %}{{ reward.payment.period_start }} – {{ reward.payment.period_end }}{% else %}Not included in a payment yet{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">No rewards recorded yet.</p>{% endif %}
 </section>
 {% endblock %}

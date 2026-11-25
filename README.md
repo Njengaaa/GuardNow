@@ -56,9 +56,13 @@ browser. The development server is for local development, not production.
 
 Guard payroll and client billing are separate:
 
-- **Guard payroll** counts attendance marked Present in the selected period,
-  multiplies by the guard daily rate, and adds rewards dated in that period.
-  Absent and Late records do not count as paid shift-days.
+- **Guard payroll** counts attendance marked Present in the selected period
+  and multiplies by the guard daily rate. Rewards dated in that period are
+  calculated as a percentage of base pay: Excellent Service (25%), Good Service
+  (5%), Perfect Attendance (10%), and Client Perfect Rating (5%). Only the
+  highest qualifying reward percentage applies. Perfect Attendance requires
+  every scheduled shift-day in the period to be recorded Present. Absent and
+  Late records do not count as paid shift-days.
 - **Client invoices** bill scheduled coverage: each assigned guard-day is
   charged at the rank's client daily rate, whether or not attendance is later
   marked absent. An administrator can create a draft invoice after all guards

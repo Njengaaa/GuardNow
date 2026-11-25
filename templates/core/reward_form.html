@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 {% block title %}Add reward | GuardLink{% endblock %}
 {% block content %}
-<div class="page-heading"><a class="back-link" href="{% url 'payments' %}">← Back to payments</a><p class="eyebrow">PAYROLL</p><h1>Record a reward</h1><p class="muted">Add a dated bonus or reward for a guard.</p></div>
+<div class="page-heading"><a class="back-link" href="{% url 'payments' %}">← Back to payments</a><p class="eyebrow">PAYROLL</p><h1>Record a reward</h1><p class="muted">Choose a reward reason. Its amount is calculated as a percentage of base pay for the payment period. For Perfect Attendance, calculate the payment first and record every scheduled shift-day as Present.</p></div>
 <section class="form-card narrow-card"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="button" type="submit">Save reward</button></form></section>
 {% endblock %}
